@@ -30,7 +30,7 @@
                 android:layout_width="146dp"
                 android:layout_height="wrap_content"
                 android:ems="10"
-                android:hint="Integer > 1"
+                android:hint="integer between 2 and 10 million"
                 android:inputType="number" />
 
             <Button
@@ -39,6 +39,19 @@
                 android:layout_height="40dp"
                 android:text="Start" />
 
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/test_layout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/test_output_testview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TextView" />
         </LinearLayout>
     </LinearLayout>
 </android.support.constraint.ConstraintLayout>
