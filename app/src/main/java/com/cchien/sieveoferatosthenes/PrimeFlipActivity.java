@@ -41,6 +41,10 @@ public class PrimeFlipActivity extends AppCompatActivity {
     boolean bFirstShown = false;
     boolean bAllShown = false;
 
+    public enum SwipeDirection {
+        LEFT, RIGHT, UP, DOWN
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -138,7 +142,7 @@ public class PrimeFlipActivity extends AppCompatActivity {
                 }
             }
         });
-        RefreshGridView();
+        RefreshGridView(SwipeDirection.UP);
     }
 
     private void onSwipeLeft() {
@@ -173,7 +177,7 @@ public class PrimeFlipActivity extends AppCompatActivity {
         // DEBUG Log.d(DEBUG_TAG, "onSwipeTop()");
         max_number += numbers_per_page;
         CalculatePrimes();
-        RefreshGridView();
+        RefreshGridView(SwipeDirection.UP);
 
         bProcessing = false;
     }
@@ -189,17 +193,17 @@ public class PrimeFlipActivity extends AppCompatActivity {
         if (max_number > numbers_per_page) {
             max_number -= numbers_per_page;
             CalculatePrimes();
-            RefreshGridView();
+            RefreshGridView(SwipeDirection.DOWN);
         }
 
         bProcessing = false;
     }
 
-    private void RefreshGridView() {
+    private void RefreshGridView(SwipeDirection direction) {
         adjustGridViewNumColumns();
         gridAdapter.notifyDataSetChanged();
         gridView.invalidateViews();
-        gridView.smoothScrollToPosition(1);
+        gridView.smoothScrollToPosition((direction == SwipeDirection.DOWN)? numbers_per_page : 1);
     }
 
     void GetScreenSize() {
