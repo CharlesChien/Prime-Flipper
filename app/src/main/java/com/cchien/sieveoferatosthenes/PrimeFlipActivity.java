@@ -22,7 +22,7 @@ public class PrimeFlipActivity extends AppCompatActivity {
 
     Button startButton;
     EditText maxNumberText;
-    int numbers_per_page = 300;
+    int numbers_per_page = 500; // 300
     NumberCell[] primes = new NumberCell[numbers_per_page];
 
     int max_number = numbers_per_page;
@@ -215,6 +215,27 @@ public class PrimeFlipActivity extends AppCompatActivity {
         bAllShown = false;
         bFirstShown = false;
         try {
+            SegmentedSieveOfEratosthenes sieve = new SegmentedSieveOfEratosthenes(max_number);
+            int start_number = (max_number > numbers_per_page)? max_number - numbers_per_page + 1 : 2;
+            int index_offset = (max_number > numbers_per_page)? max_number - numbers_per_page + 1: 1;
+            if (start_number == 2) {
+                primes[0] = new NumberCell(1, false);
+            }
+            // DEBUG Log.d(DEBUG_TAG, String.format("start_number = %d, index_offset = %d, max_number = %d", start_number, index_offset, max_number));
+            for (int i = start_number; i <= max_number; i++) {
+               // DEBUG Log.d(DEBUG_TAG, String.format("primes[%d] = (%d, %s)...", i - index_offset, i, arr[i] == 0? "true":"false"));
+                primes[i - index_offset] = new NumberCell(i, sieve.isPrime(i));
+            }
+            // DEBUG Log.d(DEBUG_TAG, String.format(PAGE_OUTPUT_FORMATTER, start_number, max_number, sb.toString()));
+        } catch (Exception ex) {
+            // DEBUG Log.d(DEBUG_TAG, String.format("Error: %1", ex.getMessage()));
+        }
+    }
+    private void OldCalculatePrimes() {
+        // DEBUG Log.d(DEBUG_TAG, "CalculatePrimes()");
+        bAllShown = false;
+        bFirstShown = false;
+        try {
             // DEBUG Log.d(DEBUG_TAG, "Initializing Array");
             int[] arr = new int[max_number + 1];
 
@@ -241,17 +262,8 @@ public class PrimeFlipActivity extends AppCompatActivity {
             }
             // DEBUG Log.d(DEBUG_TAG, String.format("start_number = %d, index_offset = %d, max_number = %d", start_number, index_offset, max_number));
             for (int i = start_number; i <= max_number; i++) {
-               // DEBUG Log.d(DEBUG_TAG, String.format("primes[%d] = (%d, %s)...", i - index_offset, i, arr[i] == 0? "true":"false"));
+                // DEBUG Log.d(DEBUG_TAG, String.format("primes[%d] = (%d, %s)...", i - index_offset, i, arr[i] == 0? "true":"false"));
                 primes[i - index_offset] = new NumberCell(i, arr[i] == 0);
-                if (arr[i] == 0) {
-                    // this is a prime.
-                    if (bFirst) {
-                        bFirst = false;
-                    } else {
-                        sb.append(", ");
-                    }
-                    sb.append(new Integer(i).toString());
-                }
             }
             // DEBUG Log.d(DEBUG_TAG, String.format(PAGE_OUTPUT_FORMATTER, start_number, max_number, sb.toString()));
         } catch (Exception ex) {
