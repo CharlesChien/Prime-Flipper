@@ -1,10 +1,13 @@
 package com.cchien.sieveoferatosthenes;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -16,6 +19,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.Iterator;
 
 public class PrimeFlipActivity extends AppCompatActivity {
     private GestureDetector gestureDetector;
@@ -38,8 +44,17 @@ public class PrimeFlipActivity extends AppCompatActivity {
     GridAdapter gridAdapter;
 
     boolean bProcessing = false;
-    boolean bFirstShown = false;
-    boolean bAllShown = false;
+
+    Toast currentToast;
+    TextView currentText;
+
+    final String FIRST_RANGE_FORMATTER = "Showing numbers between %d and %d... \r\nFlip up or down to show different range of numbers.";
+    final String RANGE_FORMATTER = "Showing numbers between %d and %d...";
+    boolean bFirstRangeDisplay = true;
+
+    enum TextViewColorBackground {
+        PRIME, COMPOSITE, COMPOSITE_HIGHLITE
+    }
 
     public enum SwipeDirection {
         LEFT, RIGHT, UP, DOWN
@@ -76,6 +91,10 @@ public class PrimeFlipActivity extends AppCompatActivity {
             @Override
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
                 // DEBUG Log.d(DEBUG_TAG, String.format("onScroll(%s, %s, %f, %f)", e1.toString(), e2.toString(), distanceX, distanceY));
+                if (currentToast != null) {
+                    currentToast.cancel();
+                }
+
                 return true;
             }
             @Override
@@ -85,6 +104,7 @@ public class PrimeFlipActivity extends AppCompatActivity {
             }
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+
                 // DEBUG Log.d(DEBUG_TAG, String.format("onFling(%s, %s, %f, %f)", e1.toString(), e2.toString(), velocityX, velocityY));
                 float diffY = e2.getY() - e1.getY();
                 float diffX = e2.getX() - e1.getX();
@@ -128,18 +148,6 @@ public class PrimeFlipActivity extends AppCompatActivity {
 
             @Override
             public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-                if (bProcessing) {
-                    return;
-                } else {
-                    if (firstVisibleItem == 0) {
-                        bFirstShown = true;
-                    }
-                    // DEBUG Log.d(DEBUG_TAG, String.format("totalItemCount: %d, visibleItemCount: %d, firstVisibleItem: %d", totalItemCount, visibleItemCount, firstVisibleItem));
-                    if (bFirstShown && firstVisibleItem + visibleItemCount >= totalItemCount) {
-                        // DEBUG Log.d(DEBUG_TAG, "firstVisibleItem + visibleItemCount >= totalItemCount");
-                        bAllShown = true;
-                    }
-                }
             }
         });
         RefreshGridView(SwipeDirection.UP);
@@ -149,6 +157,7 @@ public class PrimeFlipActivity extends AppCompatActivity {
     }
 
     private void onSwipeRight() {
+        startActivity(new Intent(this, MainActivity.class));
     }
 
     private void adjustGridViewNumColumns() {
@@ -168,14 +177,24 @@ public class PrimeFlipActivity extends AppCompatActivity {
     }
 
     private void onSwipeTop() {
-        if (bProcessing || !bAllShown) {
+        if (bProcessing) {
             return;
         }
+        clearView();
+        if (max_number == SegmentedSieveOfEratosthenes.max_num_limit) {
+            currentToast = Toast.makeText(PrimeFlipActivity.this, String.format("Maximum supported number %d is reached.", SegmentedSieveOfEratosthenes.max_num_limit), Toast.LENGTH_LONG);
+            currentToast.show();
+        }
+
         bProcessing = true;
 
         // Head back on Max Number.
         // DEBUG Log.d(DEBUG_TAG, "onSwipeTop()");
-        max_number += numbers_per_page;
+        if (SegmentedSieveOfEratosthenes.max_num_limit - max_number >= numbers_per_page)
+            max_number += numbers_per_page;
+        else
+            max_number = SegmentedSieveOfEratosthenes.max_num_limit;
+
         CalculatePrimes();
         RefreshGridView(SwipeDirection.UP);
 
@@ -183,10 +202,14 @@ public class PrimeFlipActivity extends AppCompatActivity {
     }
 
     private void onSwipeBottom() {
-        if (bProcessing || !bAllShown) {
+        if (bProcessing) {
+            // DEBUG Log.d(DEBUG_TAG, String.format("onSwipeBottom() - bProcessing %s", bProcessing? "true":"false"));
             return;
         }
+        clearView();
+
         bProcessing = true;
+        // DEBUG Log.d(DEBUG_TAG, "onSwipeBottom()");
 
         // Head back on Max Number.
         // DEBUG Log.d(DEBUG_TAG, "onSwipeBottom()");
@@ -200,10 +223,11 @@ public class PrimeFlipActivity extends AppCompatActivity {
     }
 
     private void RefreshGridView(SwipeDirection direction) {
+        displayRange();
         adjustGridViewNumColumns();
         gridAdapter.notifyDataSetChanged();
         gridView.invalidateViews();
-        gridView.smoothScrollToPosition((direction == SwipeDirection.DOWN)? numbers_per_page : 1);
+//        gridView.smoothScrollToPosition((direction == SwipeDirection.DOWN)? numbers_per_page : 1);
     }
 
     void GetScreenSize() {
@@ -216,8 +240,6 @@ public class PrimeFlipActivity extends AppCompatActivity {
 
     private void CalculatePrimes() {
         // DEBUG Log.d(DEBUG_TAG, "CalculatePrimes()");
-        bAllShown = false;
-        bFirstShown = false;
         try {
             SegmentedSieveOfEratosthenes sieve = new SegmentedSieveOfEratosthenes(max_number);
             int start_number = (max_number > numbers_per_page)? max_number - numbers_per_page + 1 : 2;
@@ -225,20 +247,15 @@ public class PrimeFlipActivity extends AppCompatActivity {
             if (start_number == 2) {
                 primes[0] = new NumberCell(1, false);
             }
-            // DEBUG Log.d(DEBUG_TAG, String.format("start_number = %d, index_offset = %d, max_number = %d", start_number, index_offset, max_number));
             for (int i = start_number; i <= max_number; i++) {
-               // DEBUG Log.d(DEBUG_TAG, String.format("primes[%d] = (%d, %s)...", i - index_offset, i, arr[i] == 0? "true":"false"));
                 primes[i - index_offset] = new NumberCell(i, sieve.isPrime(i));
             }
-            // DEBUG Log.d(DEBUG_TAG, String.format(PAGE_OUTPUT_FORMATTER, start_number, max_number, sb.toString()));
         } catch (Exception ex) {
             // DEBUG Log.d(DEBUG_TAG, String.format("Error: %1", ex.getMessage()));
         }
     }
     private void OldCalculatePrimes() {
         // DEBUG Log.d(DEBUG_TAG, "CalculatePrimes()");
-        bAllShown = false;
-        bFirstShown = false;
         try {
             // DEBUG Log.d(DEBUG_TAG, "Initializing Array");
             int[] arr = new int[max_number + 1];
@@ -275,6 +292,43 @@ public class PrimeFlipActivity extends AppCompatActivity {
         }
     }
 
+    private void clearView() {
+        // Clear Toast if it's there.
+        if (currentToast != null) {
+            currentToast.cancel();
+        }
+
+        // Change TextView color if it was changed because of selection.
+        if ( currentText != null) {
+            showColor(currentText, TextViewColorBackground.COMPOSITE);
+        }
+    }
+
+    private void displayRange() {
+        currentToast = Toast.makeText(PrimeFlipActivity.this, String.format(bFirstRangeDisplay? FIRST_RANGE_FORMATTER:RANGE_FORMATTER, max_number - numbers_per_page + 1, max_number), Toast.LENGTH_LONG);
+        currentToast.show();
+        bFirstRangeDisplay = false;
+    }
+
+    private void showColor(TextView textView, TextViewColorBackground color_type) {
+        switch (color_type) {
+            case COMPOSITE:
+                textView.setTextColor(Color.GRAY);
+                textView.setBackgroundColor(Color.LTGRAY);
+                break;
+            case COMPOSITE_HIGHLITE:
+                textView.setTextColor(Color.DKGRAY);
+                textView.setBackgroundColor(Color.LTGRAY);
+                break;
+            case PRIME:
+                textView.setTextColor(Color.RED);
+                textView.setBackgroundColor(Color.WHITE);
+                break;
+            default:
+                break;
+        }
+    }
+
     class NumberCell {
         int value;
         boolean isPrime;
@@ -307,15 +361,52 @@ public class PrimeFlipActivity extends AppCompatActivity {
             return i;
         }
 
+        private void showPrimeDivisors(TextView textView, int number) {
+            SegmentedSieveOfEratosthenes sieve = new SegmentedSieveOfEratosthenes(numbers_per_page);
+
+            Iterator<Integer> prime_divisors = sieve.getPrimeDivisors(number);
+            StringBuilder sb = new StringBuilder();
+            sb.append(number);
+            sb.append(" = ");
+            sb.append(1);
+            while (prime_divisors.hasNext()) {
+                sb.append(" x ");
+                sb.append(prime_divisors.next());
+            }
+            sb.append(" x ");
+            sb.append(number);
+
+            currentToast = Toast.makeText(PrimeFlipActivity.this, sb.toString(), Toast.LENGTH_SHORT);
+            currentToast.show();
+
+            currentText = textView;
+            showColor(currentText, TextViewColorBackground.COMPOSITE_HIGHLITE);
+        }
+
         @Override
         public View getView(int position, View view, ViewGroup viewGroup) {
-//            // DEBUG Log.d(DEBUG_TAG, String.format("GridAdapter::getView(%d)", position));
-            TextView textView = new TextView(context);
-            NumberCell cell = primes[position];
+            // DEBUG Log.d(DEBUG_TAG, String.format("GridAdapter::getView(%d)", position));
+            final TextView textView = new TextView(context);
+            final NumberCell cell = primes[position];
             textView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
             textView.setText(String.valueOf(String.valueOf(cell.value)));
-            textView.setTextColor(cell.isPrime? Color.RED : Color.GRAY);
-            textView.setBackgroundColor(cell.isPrime? Color.WHITE : Color.LTGRAY);
+            if (cell.isPrime) {
+                showColor(textView, TextViewColorBackground.PRIME);
+            } else {
+                showColor(textView, TextViewColorBackground.COMPOSITE);
+                textView.setOnTouchListener(new View.OnTouchListener() {
+                    @SuppressLint("ClickableViewAccessibility")
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                            clearView();
+                            showPrimeDivisors(textView, cell.value);
+                            return false;
+                        }
+                        return true;
+                    }
+                });
+            }
             return textView;
         }
     }

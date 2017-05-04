@@ -2,6 +2,7 @@ package com.cchien.sieveoferatosthenes;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.support.annotation.StringRes;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -9,7 +10,6 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -17,15 +17,20 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.util.Iterator;
+
 public class MainActivity extends AppCompatActivity {
     private GestureDetector gestureDetector;
 
     Button startButton;
+    Button resetButton;
     EditText maxNumberText;
-    final int numbers_per_page = 100;
+    final int numbers_per_page = 1000;
 
     int max_number = numbers_per_page;
-    int MAX_MAX_NUMBER = 10000000; // 10 million
+    int MAX_MAX_NUMBER = 20000000; // 20 million
+    // On a Samsung S4 it gets OutOfMemoryError at 33,541,489
+    // On LG 5X, it's at                           52,649,801
 
     TextView test_output_text_view;
     private static final String DEBUG_TAG = "SOE - MainActivity";
@@ -43,6 +48,9 @@ public class MainActivity extends AppCompatActivity {
         // Disable button before any text is entered.
         startButton = (Button) findViewById(R.id.start_btn);
         startButton.setEnabled(false);
+
+        resetButton = (Button) findViewById(R.id.reset_btn);
+        resetButton.setEnabled(true);
 
         maxNumberText = (EditText) findViewById(R.id.max_num_edit_text);
 
@@ -71,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
             }
             @Override
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                Log.d(DEBUG_TAG, String.format("onScroll(%s, %s, %f, %f)", e1.toString(), e2.toString(), distanceX, distanceY));
+                // DEBUG Log.d(DEBUG_TAG, String.format("onScroll(%s, %s, %f, %f)", e1.toString(), e2.toString(), distanceX, distanceY));
                 return true;
             }
             @Override
@@ -81,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
             }
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                Log.d(DEBUG_TAG, String.format("onFling(%s, %s, %f, %f)", e1.toString(), e2.toString(), velocityX, velocityY));
+                // DEBUG Log.d(DEBUG_TAG, String.format("onFling(%s, %s, %f, %f)", e1.toString(), e2.toString(), velocityX, velocityY));
                 float diffY = e2.getY() - e1.getY();
                 float diffX = e2.getX() - e1.getX();
                 if (Math.abs(diffX) > Math.abs(diffY)) {
@@ -108,40 +116,68 @@ public class MainActivity extends AppCompatActivity {
         // Add a listener to maxNumberText EditText to enable or disable startButton
         maxNumberText.addTextChangedListener(new TextWatcher() {
 
+            private String prev_value = "";
+
             public void afterTextChanged(Editable s) {
                 // Deal with maxNumberText here.
+                String number_text = maxNumberText.getText().toString();
+                if (number_text.isEmpty()) {
+                    startButton.setEnabled(false);
+                    return;
+                }
                 max_number = Integer.parseInt(maxNumberText.getText().toString());
                 max_number = Integer.parseInt(maxNumberText.getText().toString());
                 if (max_number < 2) {
-                } else if (max_number > MAX_MAX_NUMBER) {
-                    startButton.setEnabled(false);
-                    PromptMessage(R.string.dialog_title_error, R.string.max_number_too_large_message);
                 } else {
                     startButton.setEnabled(true);
                 }
             }
 
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                prev_value = s.toString();
+            }
 
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            public void onTextChanged(CharSequence s, int start,
+                                      int before, int count) {
+                // DEBUG Log.d(DEBUG_TAG, String.format("onTextChanged() - s: %s, start: %d, count: %d", s, start, count));
+                String number_text = s.toString();
+                if (!number_text.isEmpty()) {
+                    try {
+                        int value = Integer.parseInt(number_text);
+                    }
+                    catch (NumberFormatException e) {
+                        PromptMessage(R.string.dialog_title_error, R.string.retry_message);
+                        maxNumberText.setText(prev_value);
+                    }
+                }
+            }
         });
 
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (max_number < 2) {
-                    PromptMessage(R.string.dialog_title_error, R.string.max_number_too_small_message);
+                    PromptMessage(R.string.dialog_title_error, R.string.retry_message);
                     return;
                 }
 
                 startButton.setEnabled(false);
-                CalculatePrimes(false);
+                // CalculatePrimes(false);
+                CheckPrimeDivisors();
                 startButton.setEnabled(true);
             }
         });
+        resetButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                maxNumberText.setText("");
+            }
+        });
+
     }
 
     private void onSwipeLeft() {
+        startActivity(new Intent(this, PrimeFlipActivity.class));
     }
 
     private void onSwipeRight() {
@@ -149,27 +185,64 @@ public class MainActivity extends AppCompatActivity {
 
     private void onSwipeTop() {
         // Head back on Max Number.
-        Log.d(DEBUG_TAG, "onSwipeTop()");
+        // DEBUG Log.d(DEBUG_TAG, "onSwipeTop()");
         max_number += numbers_per_page;
         CalculatePrimes(true);
     }
 
     private void onSwipeBottom() {
         // Head back on Max Number.
-        Log.d(DEBUG_TAG, "onSwipeBottom()");
-        if (max_number > 201) {
+        // DEBUG Log.d(DEBUG_TAG, "onSwipeBottom()");
+        if (max_number >= numbers_per_page) {
             max_number -= numbers_per_page;
             CalculatePrimes(true);
         }
     }
 
-    private void CalculatePrimes(boolean bUsePage) {
-        Log.d(DEBUG_TAG, "CalculatePrimes()");
+    private void CheckPrimeDivisors() {
+        // DEBUG Log.d(DEBUG_TAG, "CheckPrimeDivisors()");
         try {
-            Log.d(DEBUG_TAG, "Initializing Array");
+            SegmentedSieveOfEratosthenes sieve = new SegmentedSieveOfEratosthenes(numbers_per_page);
+
+            Iterator<Integer> prime_divisors = sieve.getPrimeDivisors(max_number);
+            StringBuilder sb = new StringBuilder();
+            boolean bIsPrime = true;
+            sb.append(1);
+            while (prime_divisors.hasNext()) {
+                int prime_number = prime_divisors.next().intValue();
+                sb.append(" x ");
+                sb.append(prime_number);
+                bIsPrime = prime_number == max_number;
+            }
+            if (bIsPrime) {
+                test_output_text_view.setText(String.format("%d is a prime number.", max_number));
+            } else {
+                sb.append(" x ");
+                sb.append(max_number);
+                test_output_text_view.setText(String.format("%d is a composit number: %s", max_number, sb.toString()));
+            }
+        } catch (Exception ex) {
+            // DEBUG Log.d(DEBUG_TAG, String.format("Error: %1", ex.getMessage()));
+        }
+    }
+
+    private void CalculatePrimes(boolean bUsePage) {
+        // DEBUG Log.d(DEBUG_TAG, "CalculatePrimes()");
+        try {
+            SegmentedSieveOfEratosthenes sieve = new SegmentedSieveOfEratosthenes(numbers_per_page);
+
+            test_output_text_view.setText(String.format("%d is a %s number", max_number, sieve.isPrime(max_number)? "prime":"composite"));
+        } catch (Exception ex) {
+            // DEBUG Log.d(DEBUG_TAG, String.format("Error: %1", ex.getMessage()));
+        }
+    }
+    private void CalculatePrimesOld(boolean bUsePage) {
+        // DEBUG Log.d(DEBUG_TAG, "CalculatePrimes()");
+        try {
+            // DEBUG Log.d(DEBUG_TAG, "Initializing Array");
             int[] arr = new int[max_number + 1];
 
-            Log.d(DEBUG_TAG, "Looping through sqrt()");
+            // DEBUG Log.d(DEBUG_TAG, "Looping through sqrt()");
             for (int i = 2; i <= Math.sqrt(max_number); i++) {
                 if (arr[i] == 0) {
                     for (int j = i * i; j <= max_number; j += i) {
@@ -178,7 +251,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            Log.d(DEBUG_TAG, "Collecting primes");
+            // DEBUG Log.d(DEBUG_TAG, "Collecting primes");
             boolean bFirst = true;
             StringBuilder sb = new StringBuilder();
             if (bUsePage) {
@@ -193,7 +266,7 @@ public class MainActivity extends AppCompatActivity {
                         sb.append(new Integer(i).toString());
                     }
                 }
-                Log.d(DEBUG_TAG, String.format(PAGE_OUTPUT_FORMATTER, start_number, max_number, sb.toString()));
+                // DEBUG Log.d(DEBUG_TAG, String.format(PAGE_OUTPUT_FORMATTER, start_number, max_number, sb.toString()));
                 test_output_text_view.setText(String.format(PAGE_OUTPUT_FORMATTER, start_number, max_number, sb.toString()));
             } else {
                 for (int i = 2; i < max_number; i++) {
@@ -206,11 +279,11 @@ public class MainActivity extends AppCompatActivity {
                         sb.append(new Integer(i).toString());
                     }
                 }
-                Log.d(DEBUG_TAG, String.format(OUTPUT_FORMATTER, max_number, sb.toString()));
+                // DEBUG Log.d(DEBUG_TAG, String.format(OUTPUT_FORMATTER, max_number, sb.toString()));
                 test_output_text_view.setText(String.format(OUTPUT_FORMATTER, max_number, sb.toString()));
             }
         } catch (Exception ex) {
-            Log.d(DEBUG_TAG, String.format("Error: %1", ex.getMessage()));
+            // DEBUG Log.d(DEBUG_TAG, String.format("Error: %1", ex.getMessage()));
         }
     }
     @Override
@@ -224,23 +297,22 @@ public class MainActivity extends AppCompatActivity {
             int action = MotionEventCompat.getActionMasked(event);
             switch (action) {
                 case (MotionEvent.ACTION_DOWN):
-                    Log.d(DEBUG_TAG, "Action was DOWN");
+                    // DEBUG Log.d(DEBUG_TAG, "Action was DOWN");
                     return true;
                 case (MotionEvent.ACTION_MOVE):
-                    Log.d(DEBUG_TAG, "Action was MOVE");
+                    // DEBUG Log.d(DEBUG_TAG, "Action was MOVE");
                     return true;
                 case (MotionEvent.ACTION_UP):
-                    Log.d(DEBUG_TAG, "Action was UP");
+                    // DEBUG Log.d(DEBUG_TAG, "Action was UP");
                     return true;
                 case (MotionEvent.ACTION_SCROLL):
-                    Log.d(DEBUG_TAG, "Action was ACTION_SCROLL");
+                    // DEBUG Log.d(DEBUG_TAG, "Action was ACTION_SCROLL");
                     return true;
                 case (MotionEvent.ACTION_CANCEL):
-                    Log.d(DEBUG_TAG, "Action was CANCEL");
+                    // DEBUG Log.d(DEBUG_TAG, "Action was CANCEL");
                     return true;
                 case (MotionEvent.ACTION_OUTSIDE):
-                    Log.d(DEBUG_TAG, "Movement occurred outside bounds " +
-                            "of current screen element");
+                    // DEBUG Log.d(DEBUG_TAG, "Movement occurred outside bounds of current screen element");
                     return true;
                 default:
                     return super.onTouchEvent(event);
@@ -253,7 +325,7 @@ public class MainActivity extends AppCompatActivity {
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         heightPixels = displayMetrics.heightPixels;
         widthPixels = displayMetrics.widthPixels;
-        Log.d(DEBUG_TAG, String.format("WidthPixels: %d, heightPixels: %d", this.widthPixels, this.heightPixels));
+        // DEBUG Log.d(DEBUG_TAG, String.format("WidthPixels: %d, heightPixels: %d", this.widthPixels, this.heightPixels));
     }
 
     void PromptMessage(@StringRes int titleId, @StringRes int messageId) {

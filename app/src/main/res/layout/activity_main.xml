@@ -15,29 +15,51 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="49dp"
-            android:orientation="horizontal">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_gravity="center_horizontal|center_vertical">
 
             <TextView
                 android:id="@+id/textView2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Max Number:"
+                android:text="Enter a number below to check if it's a prime or composite number"
                 android:textAppearance="@android:style/TextAppearance.Medium" />
 
             <EditText
                 android:id="@+id/max_num_edit_text"
-                android:layout_width="146dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:ems="10"
-                android:hint="integer between 2 and 10 million"
-                android:inputType="number" />
+                android:hint="integer between 2 and 2,147,483,647"
+                android:inputType="number"
+                android:textAlignment="center" />
 
-            <Button
-                android:id="@+id/start_btn"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:text="Start" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_gravity="center_horizontal|center_vertical">
+                <Button
+                    android:id="@+id/start_btn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:text="Check"
+                    android:textAlignment="center" />
+
+                <Button
+                    android:id="@+id/reset_btn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:text="Reset"
+                    android:textAlignment="center" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
@@ -49,9 +71,11 @@
 
             <TextView
                 android:id="@+id/test_output_testview"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="TextView" />
+                android:text="Swipe Left To Prime Flip Tab"
+                android:textAlignment="center"
+                android:textAppearance="@android:style/TextAppearance.Medium" />
         </LinearLayout>
     </LinearLayout>
 </android.support.constraint.ConstraintLayout>

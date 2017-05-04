@@ -1,6 +1,7 @@
 <resources>
-    <string name="app_name">Sieve Of Eratosthenes</string>
+    <string name="app_name">Prime Flipper</string>
     <string name="dialog_title_error">Wrong Input</string>
     <string name="max_number_too_small_message">Max number must be greater than 1. Try entering the value again.</string>
     <string name="max_number_too_large_message">Max number must not be grater than 1,000,000. Try entering the value again.</string>
+    <string name="retry_message">Valid input may be any integer value between 2 and 2,147,483,647. Please retry.</string>
 </resources>
