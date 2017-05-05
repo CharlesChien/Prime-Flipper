@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -207,22 +208,24 @@ public class MainActivity extends AppCompatActivity {
             Iterator<Integer> prime_divisors = sieve.getPrimeDivisors(max_number);
             StringBuilder sb = new StringBuilder();
             boolean bIsPrime = true;
-            sb.append(1);
+            boolean bFirstTime = true;
             while (prime_divisors.hasNext()) {
                 int prime_number = prime_divisors.next().intValue();
-                sb.append(" x ");
+                if (bFirstTime) {
+                    bFirstTime = false;
+                } else {
+                    sb.append(" x ");
+                }
                 sb.append(prime_number);
                 bIsPrime = prime_number == max_number;
             }
             if (bIsPrime) {
                 test_output_text_view.setText(String.format("%d is a prime number.", max_number));
             } else {
-                sb.append(" x ");
-                sb.append(max_number);
-                test_output_text_view.setText(String.format("%d is a composit number: %s", max_number, sb.toString()));
+                test_output_text_view.setText(String.format("%d is a composite number: %s", max_number, sb.toString()));
             }
         } catch (Exception ex) {
-            // DEBUG Log.d(DEBUG_TAG, String.format("Error: %1", ex.getMessage()));
+            Log.e(DEBUG_TAG, String.format("Error in MainActivity::CheckPrimeDivisors(): %1", ex.getMessage()));
         }
     }
 
@@ -233,59 +236,10 @@ public class MainActivity extends AppCompatActivity {
 
             test_output_text_view.setText(String.format("%d is a %s number", max_number, sieve.isPrime(max_number)? "prime":"composite"));
         } catch (Exception ex) {
-            // DEBUG Log.d(DEBUG_TAG, String.format("Error: %1", ex.getMessage()));
+            Log.e(DEBUG_TAG, String.format("Error in MainActivity::CalculatePrimes(): %1", ex.getMessage()));
         }
     }
-    private void CalculatePrimesOld(boolean bUsePage) {
-        // DEBUG Log.d(DEBUG_TAG, "CalculatePrimes()");
-        try {
-            // DEBUG Log.d(DEBUG_TAG, "Initializing Array");
-            int[] arr = new int[max_number + 1];
 
-            // DEBUG Log.d(DEBUG_TAG, "Looping through sqrt()");
-            for (int i = 2; i <= Math.sqrt(max_number); i++) {
-                if (arr[i] == 0) {
-                    for (int j = i * i; j <= max_number; j += i) {
-                        arr[j] = 1;
-                    }
-                }
-            }
-
-            // DEBUG Log.d(DEBUG_TAG, "Collecting primes");
-            boolean bFirst = true;
-            StringBuilder sb = new StringBuilder();
-            if (bUsePage) {
-                int start_number = (max_number > numbers_per_page)? max_number - numbers_per_page : 2;
-                for (int i = start_number; i < max_number; i++) {
-                    if (arr[i] == 0) {
-                        if (bFirst) {
-                            bFirst = false;
-                        } else {
-                            sb.append(", ");
-                        }
-                        sb.append(new Integer(i).toString());
-                    }
-                }
-                // DEBUG Log.d(DEBUG_TAG, String.format(PAGE_OUTPUT_FORMATTER, start_number, max_number, sb.toString()));
-                test_output_text_view.setText(String.format(PAGE_OUTPUT_FORMATTER, start_number, max_number, sb.toString()));
-            } else {
-                for (int i = 2; i < max_number; i++) {
-                    if (arr[i] == 0) {
-                        if (bFirst) {
-                            bFirst = false;
-                        } else {
-                            sb.append(", ");
-                        }
-                        sb.append(new Integer(i).toString());
-                    }
-                }
-                // DEBUG Log.d(DEBUG_TAG, String.format(OUTPUT_FORMATTER, max_number, sb.toString()));
-                test_output_text_view.setText(String.format(OUTPUT_FORMATTER, max_number, sb.toString()));
-            }
-        } catch (Exception ex) {
-            // DEBUG Log.d(DEBUG_TAG, String.format("Error: %1", ex.getMessage()));
-        }
-    }
     @Override
     public boolean onTouchEvent(MotionEvent event)
     {
